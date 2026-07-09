@@ -1,0 +1,5 @@
+Test ID,Business Rule ID,Decision Table Case ID,Scenario,Preconditions,Input,Expected Decision,Expected Reason,Boundary Case?,Exception Case?,Priority,Test Level,Automation Status,Status,Notes
+BRT-001,BR-001,BR-001-DT-001,Positive example,CHANGE_ME,CHANGE_ME,Allowed,,No,No,High,Unit,Not Automated,Draft,CHANGE_ME
+BRT-002,BR-001,BR-001-DT-002,Negative example,CHANGE_ME,CHANGE_ME,Rejected,CHANGE_ME,No,No,High,Unit,Not Automated,Draft,CHANGE_ME
+BRT-003,BR-001,BR-001-DT-003,Boundary example,CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,Yes,No,High,Unit,Not Automated,Draft,CHANGE_ME
+BRT-004,BR-001,BR-001-DT-004,Exception example,CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,No,Yes,High,Unit,Not Automated,Draft,CHANGE_ME

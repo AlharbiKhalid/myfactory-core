@@ -1,0 +1,4 @@
+Test ID,Feature,Requirement ID,Scenario,Preconditions,Input,Expected Result,Priority,Test Level,Automation Status,Status,Notes
+FT-001,CHANGE_ME,FR-CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,High,Unit,Not Automated,Draft,CHANGE_ME
+FT-002,CHANGE_ME,FR-CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,High,API,Not Automated,Draft,CHANGE_ME
+FT-003,CHANGE_ME,FR-CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,CHANGE_ME,Medium,E2E,Not Automated,Draft,CHANGE_ME
