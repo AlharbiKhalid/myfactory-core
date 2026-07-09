@@ -1,0 +1,79 @@
+business_rules:
+  - id: BR-001
+    name: CHANGE_ME
+    owner: product
+    status: draft
+    priority: high
+
+    description: >
+      Describe the business rule in plain language.
+      The rule should be understandable by product, engineering, QA,
+      business stakeholders, and AI agents.
+
+    rationale: >
+      Explain why this rule exists from a business perspective.
+
+    applies_to:
+      module: CHANGE_ME
+      user_types:
+        - CHANGE_ME
+      workflows:
+        - CHANGE_ME
+
+    inputs:
+      - name: CHANGE_ME
+        type: string
+        required: true
+        description: CHANGE_ME
+
+    expected_behavior:
+      allowed_when:
+        - condition: CHANGE_ME
+
+      rejected_when:
+        - condition: CHANGE_ME
+          rejection_reason: CHANGE_ME
+
+    exceptions:
+      - condition: CHANGE_ME
+        behavior: CHANGE_ME
+
+    boundary_cases:
+      - case: CHANGE_ME
+        expected_result: CHANGE_ME
+
+    examples:
+      - id: BR-001-EX-001
+        scenario: Positive example
+        given:
+          example_input: CHANGE_ME
+        expected_result: allowed
+        notes: CHANGE_ME
+
+      - id: BR-001-EX-002
+        scenario: Negative example
+        given:
+          example_input: CHANGE_ME
+        expected_result: rejected
+        expected_reason: CHANGE_ME
+        notes: CHANGE_ME
+
+    audit_requirements:
+      must_log_decision: false
+      must_log_reason: false
+      must_log_actor: false
+
+    test_requirements:
+      unit_tests_required: true
+      integration_tests_required: false
+      api_tests_required: false
+      e2e_tests_required: false
+      business_qa_required: true
+
+    traceability:
+      related_requirements:
+        - FR-CHANGE_ME
+      related_acceptance_criteria:
+        - AC-CHANGE_ME
+      related_test_cases:
+        - BRT-CHANGE_ME
