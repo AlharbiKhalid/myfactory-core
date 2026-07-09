@@ -1,0 +1,54 @@
+product:
+  key: CHANGE_ME
+  name: CHANGE_ME
+  description: CHANGE_ME
+  version: 0.1.0
+
+factory:
+  name: MyFactory
+  lifecycle_version: 0.1.0
+  metadata_directory: .ApplicationFactory
+
+source_of_truth:
+  product:
+    - docs/00-product/idea-brief.md
+    - docs/00-product/prd.md
+    - docs/00-product/user-journeys.md
+    - docs/00-product/acceptance-criteria.md
+
+  business:
+    - docs/01-business/business-rules.yaml
+    - docs/01-business/decision-tables.md
+    - docs/01-business/glossary.md
+
+  architecture:
+    - docs/02-architecture/system-overview.md
+    - docs/02-architecture/domain-model.md
+    - docs/02-architecture/data-model.md
+    - docs/02-architecture/api-contracts.md
+
+  delivery:
+    - docs/03-delivery/work-breakdown.yaml
+    - docs/03-delivery/plane-sync-map.yaml
+
+  qa:
+    - docs/04-qa/test-strategy.md
+    - docs/04-qa/functional-test-matrix.csv
+    - docs/04-qa/business-rule-test-matrix.csv
+    - docs/04-qa/regression-plan.md
+
+  operations:
+    - docs/05-operations/deployment.md
+    - docs/05-operations/monitoring.md
+    - docs/05-operations/runbooks.md
+
+task_packages:
+  directory: .ApplicationFactory/task-packages
+
+rules:
+  source_of_truth_is_git: true
+  plane_is_execution_tracker: true
+  agents_must_use_task_packages: true
+  agents_must_not_use_chat_as_source_of_truth: true
+  agents_must_not_approve_own_work: true
+  agents_must_not_merge_to_main: true
