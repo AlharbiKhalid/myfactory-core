@@ -1,0 +1,60 @@
+name: MyFactory Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  source-of-truth-check:
+    name: Source of Truth Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify MyFactory metadata exists
+        run: |
+          test -f .ApplicationFactory/product.yaml
+          test -d .ApplicationFactory/task-packages
+
+      - name: Verify product source-of-truth files exist
+        run: |
+          test -f docs/00-product/idea-brief.md
+          test -f docs/00-product/prd.md
+          test -f docs/00-product/user-journeys.md
+          test -f docs/00-product/acceptance-criteria.md
+
+      - name: Verify business source-of-truth files exist
+        run: |
+          test -f docs/01-business/business-rules.yaml
+          test -f docs/01-business/decision-tables.md
+          test -f docs/01-business/glossary.md
+
+      - name: Verify architecture source-of-truth files exist
+        run: |
+          test -f docs/02-architecture/system-overview.md
+          test -f docs/02-architecture/domain-model.md
+          test -f docs/02-architecture/data-model.md
+          test -f docs/02-architecture/api-contracts.md
+
+      - name: Verify delivery source-of-truth files exist
+        run: |
+          test -f docs/03-delivery/work-breakdown.yaml
+          test -f docs/03-delivery/plane-sync-map.yaml
+
+      - name: Verify QA source-of-truth files exist
+        run: |
+          test -f docs/04-qa/test-strategy.md
+          test -f docs/04-qa/functional-test-matrix.csv
+          test -f docs/04-qa/business-rule-test-matrix.csv
+          test -f docs/04-qa/regression-plan.md
+
+      - name: Verify operations source-of-truth files exist
+        run: |
+          test -f docs/05-operations/deployment.md
+          test -f docs/05-operations/monitoring.md
+          test -f docs/05-operations/runbooks.md
