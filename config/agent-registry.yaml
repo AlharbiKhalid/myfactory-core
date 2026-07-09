@@ -1,0 +1,207 @@
+agent_registry:
+  version: 0.1.0
+  purpose: >
+    Defines reusable MyFactory agent roles, responsibilities, permissions,
+    forbidden actions, and routing rules.
+
+  global_rules:
+    - Agents must work from source-of-truth files, not chat history.
+    - Agents must use structured task packages.
+    - Agents must not approve their own work.
+    - Agents must not merge to main.
+    - Agents must not mark work done without evidence.
+    - Agents must not change business rules unless assigned a BUSINESS_RULE task.
+    - Agents must not change architecture unless assigned an ARCHITECTURE task.
+    - Agents must not edit unrelated files.
+
+  agents:
+    product_agent:
+      name: Product Agent
+      instruction_file: agents/product-agent.md
+      purpose: Convert raw ideas into product documentation.
+      owns:
+        - docs/00-product/idea-brief.md
+        - docs/00-product/prd.md
+        - docs/00-product/user-journeys.md
+        - docs/00-product/acceptance-criteria.md
+      handles_issue_types:
+        - PRODUCT_SPEC
+        - DOCUMENTATION
+      allowed_actions:
+        - write_product_docs
+        - update_product_docs
+        - identify_open_questions
+        - define_acceptance_criteria
+      forbidden_actions:
+        - edit_source_code
+        - approve_pull_requests
+        - merge_pull_requests
+        - deploy
+        - change_business_rules_without_handoff
+
+    business_logic_agent:
+      name: Business Logic Agent
+      instruction_file: agents/business-logic-agent.md
+      purpose: Extract and maintain business rules, decision tables, and business QA inputs.
+      owns:
+        - docs/01-business/business-rules.yaml
+        - docs/01-business/decision-tables.md
+        - docs/01-business/glossary.md
+        - docs/04-qa/business-rule-test-matrix.csv
+      handles_issue_types:
+        - BUSINESS_RULE
+      allowed_actions:
+        - write_business_rules
+        - update_business_rules
+        - create_decision_tables
+        - create_business_rule_test_matrix
+        - identify_boundary_cases
+        - identify_exception_cases
+      forbidden_actions:
+        - edit_source_code
+        - approve_own_business_rules
+        - merge_pull_requests
+        - deploy
+
+    architect_agent:
+      name: Architect Agent
+      instruction_file: agents/architect-agent.md
+      purpose: Create and maintain architecture, domain model, data model, API contracts, and ADRs.
+      owns:
+        - docs/02-architecture/system-overview.md
+        - docs/02-architecture/domain-model.md
+        - docs/02-architecture/data-model.md
+        - docs/02-architecture/api-contracts.md
+        - docs/02-architecture/adr/
+      handles_issue_types:
+        - ARCHITECTURE
+        - RESEARCH
+      allowed_actions:
+        - write_architecture_docs
+        - update_architecture_docs
+        - create_adr
+        - define_business_logic_location
+        - define_api_contracts
+        - define_data_model
+      forbidden_actions:
+        - implement_features_without_task
+        - approve_own_architecture
+        - merge_pull_requests
+        - deploy
+
+    work_breakdown_agent:
+      name: Work Breakdown Agent
+      instruction_file: agents/work-breakdown-agent.md
+      purpose: Convert source-of-truth documents into structured delivery work items.
+      owns:
+        - docs/03-delivery/work-breakdown.yaml
+      handles_issue_types:
+        - WORK_BREAKDOWN
+      allowed_actions:
+        - create_work_breakdown
+        - update_work_breakdown
+        - define_dependencies
+        - assign_issue_types
+        - reference_source_docs
+        - reference_business_rule_ids
+      forbidden_actions:
+        - edit_source_code
+        - approve_own_breakdown
+        - create_vague_tasks
+        - merge_pull_requests
+        - deploy
+
+    implementation_agent:
+      name: Implementation Agent
+      instruction_file: agents/implementation-agent.md
+      purpose: Implement assigned development tasks from task packages.
+      owns:
+        - source_code
+        - unit_tests
+        - integration_tests
+        - api_tests
+      handles_issue_types:
+        - BACKEND
+        - FRONTEND
+        - DATABASE
+        - API
+        - BUG
+      allowed_actions:
+        - edit_allowed_files
+        - create_branch
+        - write_code
+        - write_tests
+        - run_required_commands
+        - open_pull_request
+        - update_pr_description
+      forbidden_actions:
+        - edit_forbidden_files
+        - change_business_rules_without_task
+        - change_architecture_without_task
+        - approve_own_pull_request
+        - merge_pull_requests
+        - deploy
+        - mark_done_without_ci_or_test_evidence
+
+    qa_agent:
+      name: QA Agent
+      instruction_file: agents/qa-agent.md
+      purpose: Validate functional correctness, regression coverage, and test evidence.
+      owns:
+        - docs/04-qa/qa-report-template.md
+        - functional_qa_reports
+        - tests
+      handles_issue_types:
+        - TEST_AUTOMATION
+        - QA_REVIEW
+      allowed_actions:
+        - review_acceptance_criteria
+        - inspect_pull_request
+        - write_or_update_tests
+        - run_tests
+        - create_qa_report
+        - request_changes
+      forbidden_actions:
+        - approve_own_implementation
+        - change_business_rules_during_qa
+        - merge_pull_requests
+        - deploy
+
+    business_qa_agent:
+      name: Business QA Agent
+      instruction_file: agents/business-qa-agent.md
+      purpose: Validate implementation against business rules and decision tables.
+      owns:
+        - docs/04-qa/business-qa-report-template.md
+        - business_qa_reports
+      handles_issue_types:
+        - BUSINESS_QA_REVIEW
+      allowed_actions:
+        - inspect_business_rules
+        - inspect_decision_tables
+        - inspect_pull_request
+        - compare_code_to_business_rules
+        - identify_hidden_business_logic
+        - create_business_qa_report
+        - request_changes
+      forbidden_actions:
+        - edit_source_code
+        - edit_business_rules_during_review
+        - approve_own_business_rules
+        - merge_pull_requests
+        - deploy
+
+  routing:
+    PRODUCT_SPEC: product_agent
+    BUSINESS_RULE: business_logic_agent
+    ARCHITECTURE: architect_agent
+    RESEARCH: architect_agent
+    WORK_BREAKDOWN: work_breakdown_agent
+    BACKEND: implementation_agent
+    FRONTEND: implementation_agent
+    DATABASE: implementation_agent
+    API: implementation_agent
+    BUG: implementation_agent
+    TEST_AUTOMATION: qa_agent
+    QA_REVIEW: qa_agent
+    BUSINESS_QA_REVIEW: business_qa_agent
