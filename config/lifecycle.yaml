@@ -1,0 +1,177 @@
+factory_lifecycle:
+  name: MyFactory Standard Software Lifecycle
+  version: 0.1.0
+
+  purpose: >
+    Defines the reusable lifecycle used by MyFactory to convert ideas into
+    product specifications, business rules, architecture, implementation tasks,
+    QA validation, business QA validation, and release readiness.
+
+  core_principles:
+    - Git is the source of truth.
+    - Plane is the execution tracker.
+    - Agents work only from structured task packages.
+    - Every important business rule must have a stable ID.
+    - No implementation work starts before product, business, architecture, and QA context exist.
+    - No agent approves its own work.
+    - No task moves forward without evidence.
+
+  states:
+    - Intake
+    - Product Spec Needed
+    - Product Spec Drafted
+    - Product Spec Review
+    - Business Rules Needed
+    - Business Rules Drafted
+    - Business Rules Review
+    - Architecture Needed
+    - Architecture Drafted
+    - Architecture Review
+    - QA Plan Needed
+    - QA Plan Drafted
+    - Ready for Breakdown
+    - Work Breakdown Drafted
+    - Ready for Plane Sync
+    - Ready for Agent
+    - Assigned to Agent
+    - In Progress
+    - PR Open
+    - CI Failed
+    - Code Review
+    - QA Review
+    - Business QA Review
+    - Ready to Merge
+    - Merged
+    - Ready to Release
+    - Released
+    - Monitoring
+    - Done
+    - Blocked
+    - Rejected
+
+  issue_types:
+    - PRODUCT_SPEC
+    - BUSINESS_RULE
+    - ARCHITECTURE
+    - RESEARCH
+    - WORK_BREAKDOWN
+    - BACKEND
+    - FRONTEND
+    - DATABASE
+    - API
+    - TEST_AUTOMATION
+    - QA_REVIEW
+    - BUSINESS_QA_REVIEW
+    - SECURITY_REVIEW
+    - DEVOPS
+    - DOCUMENTATION
+    - BUG
+    - RELEASE
+
+  required_source_of_truth_files:
+    product:
+      - docs/00-product/idea-brief.md
+      - docs/00-product/prd.md
+      - docs/00-product/user-journeys.md
+      - docs/00-product/acceptance-criteria.md
+
+    business:
+      - docs/01-business/business-rules.yaml
+      - docs/01-business/decision-tables.md
+      - docs/01-business/glossary.md
+
+    architecture:
+      - docs/02-architecture/system-overview.md
+      - docs/02-architecture/domain-model.md
+      - docs/02-architecture/data-model.md
+      - docs/02-architecture/api-contracts.md
+
+    delivery:
+      - docs/03-delivery/work-breakdown.yaml
+      - docs/03-delivery/plane-sync-map.yaml
+
+    qa:
+      - docs/04-qa/test-strategy.md
+      - docs/04-qa/functional-test-matrix.csv
+      - docs/04-qa/business-rule-test-matrix.csv
+      - docs/04-qa/regression-plan.md
+
+    operations:
+      - docs/05-operations/deployment.md
+      - docs/05-operations/monitoring.md
+      - docs/05-operations/runbooks.md
+
+  gates:
+    before_ready_for_breakdown:
+      required:
+        - product_spec_exists
+        - business_rules_exist
+        - architecture_exists
+        - qa_plan_exists
+        - acceptance_criteria_exist
+
+    before_ready_for_agent:
+      required:
+        - work_item_has_task_id
+        - work_item_has_type
+        - work_item_has_source_docs
+        - work_item_has_acceptance_criteria
+        - work_item_has_definition_of_done
+        - dependencies_are_done_or_not_required
+
+    before_pr_open:
+      required:
+        - branch_created
+        - code_or_docs_changed
+        - tests_added_or_updated_when_required
+        - task_package_referenced
+
+    before_qa_review:
+      required:
+        - pull_request_exists
+        - ci_passed
+        - required_checks_passed
+        - pr_template_completed
+
+    before_business_qa_review:
+      required:
+        - business_rule_ids_identified
+        - business_rule_tests_exist_or_exception_recorded
+        - qa_report_exists
+
+    before_ready_to_merge:
+      required:
+        - code_review_passed
+        - qa_review_passed
+        - business_qa_review_passed_when_business_rules_are_touched
+        - no_blocking_findings
+        - no_unresolved_pr_comments
+
+    before_release:
+      required:
+        - merged_to_main
+        - release_notes_created
+        - smoke_test_plan_exists
+        - rollback_plan_exists
+        - monitoring_plan_exists
+
+  evidence_types:
+    - source_doc_path
+    - plane_issue_id
+    - git_branch_name
+    - github_pull_request_url
+    - ci_run_url
+    - test_output
+    - qa_report_path
+    - business_qa_report_path
+    - review_comment_url
+    - release_note_path
+    - monitoring_dashboard_url
+
+  rule:
+    no_agent_may:
+      - approve_its_own_work
+      - merge_to_main
+      - change_business_rules_without_a_business_rule_task
+      - change_architecture_without_an_architecture_task
+      - mark_work_done_without_evidence
