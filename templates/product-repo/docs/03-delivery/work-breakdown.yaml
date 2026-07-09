@@ -1,0 +1,76 @@
+project:
+  key: CHANGE_ME
+  name: CHANGE_ME
+  description: CHANGE_ME
+
+factory:
+  lifecycle_version: 0.1.0
+  metadata_directory: .ApplicationFactory
+
+generation:
+  generated_from:
+    - docs/00-product/prd.md
+    - docs/01-business/business-rules.yaml
+    - docs/02-architecture/system-overview.md
+    - docs/04-qa/test-strategy.md
+
+  rule: >
+    Work items must be generated from source-of-truth documents.
+    Plane must be treated as the execution tracker, not the source of truth.
+
+work_item_schema:
+  required_fields:
+    - id
+    - type
+    - title
+    - module
+    - priority
+    - state
+    - source_docs
+    - acceptance_criteria
+    - definition_of_done
+    - dependencies
+
+  optional_fields:
+    - business_rules
+    - output_docs
+    - allowed_files
+    - forbidden_files
+    - required_tests
+    - required_commands
+    - assigned_agent
+    - estimated_complexity
+    - risks
+    - notes
+
+work_item_types:
+  - PRODUCT_SPEC
+  - BUSINESS_RULE
+  - ARCHITECTURE
+  - RESEARCH
+  - WORK_BREAKDOWN
+  - BACKEND
+  - FRONTEND
+  - DATABASE
+  - API
+  - TEST_AUTOMATION
+  - QA_REVIEW
+  - BUSINESS_QA_REVIEW
+  - SECURITY_REVIEW
+  - DEVOPS
+  - DOCUMENTATION
+  - BUG
+  - RELEASE
+
+task_id_convention:
+  format: PROJECTKEY-TYPE-### 
+  examples:
+    - APP-PROD-001
+    - APP-BR-001
+    - APP-ARCH-001
+    - APP-BE-001
+    - APP-FE-001
+    - APP-QA-001
+    - APP-BQA-001
+
+work_items: []

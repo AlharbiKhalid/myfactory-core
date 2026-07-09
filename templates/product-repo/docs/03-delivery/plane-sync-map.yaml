@@ -1,0 +1,17 @@
+plane_sync:
+  workspace:
+    name: CHANGE_ME
+    id: CHANGE_ME
+
+  project:
+    name: CHANGE_ME
+    id: CHANGE_ME
+
+  sync_rules:
+    source_file: docs/03-delivery/work-breakdown.yaml
+    title_format: "[{task_id}] {title}"
+    create_missing_items: true
+    update_existing_items: true
+    delete_missing_items_from_plane: false
+
+  items: {}
