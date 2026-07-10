@@ -1,115 +1,143 @@
 #!/usr/bin/env bash
 #
-# MyFactory installer foundation.
+# MyFactory installer: downloads a prebuilt release binary from GitHub
+# Releases, verifies its SHA-256 checksum, and installs it into a
+# user-writable directory. No Python, Go, or other runtime is required.
 #
-# Intended future usage:
-#   curl -sSL https://domain.com/cli/install | bash
-#
-# Behavior:
-#   - Installs or updates MyFactory core into ~/.myfactory/core
-#   - Creates a `myfactory` shim in ~/.local/bin
-#   - Never requires root, never stores secrets, never deletes user data.
+# Usage:
+#   curl -fsSL "https://raw.githubusercontent.com/AlharbiKhalid/myfactory-core/main/scripts/install.sh" | bash
 #
 # Configuration via environment variables:
-#   MYFACTORY_REPO_URL   Git URL of myfactory-core (required for remote install)
-#   MYFACTORY_HOME       Install root (default: ~/.myfactory)
-#   MYFACTORY_BIN_DIR    Shim directory (default: ~/.local/bin)
-#   MYFACTORY_REF        Git branch/tag to install (default: main)
+#   MYFACTORY_REPOSITORY   GitHub "owner/repo" (default: AlharbiKhalid/myfactory-core)
+#   MYFACTORY_VERSION      Release tag to install, e.g. v0.3.0 (default: latest)
+#   MYFACTORY_INSTALL_DIR  Install directory (default: $HOME/.local/bin)
+#
+# Security posture:
+#   - curl -f everywhere: HTTP errors fail closed and are never executed.
+#   - TLS verification is never disabled.
+#   - SHA-256 checksums are verified before installing.
+#   - No root required; no credentials stored.
+#   - Only versioned GitHub Release assets are downloaded, never branch source.
 
 set -euo pipefail
 
-MYFACTORY_HOME="${MYFACTORY_HOME:-$HOME/.myfactory}"
-MYFACTORY_BIN_DIR="${MYFACTORY_BIN_DIR:-$HOME/.local/bin}"
-MYFACTORY_REF="${MYFACTORY_REF:-main}"
-CORE_DIR="$MYFACTORY_HOME/core"
+REPO="${MYFACTORY_REPOSITORY:-AlharbiKhalid/myfactory-core}"
+INSTALL_DIR="${MYFACTORY_INSTALL_DIR:-$HOME/.local/bin}"
+REQUESTED_VERSION="${MYFACTORY_VERSION:-}"
 
 log() { printf '[myfactory-install] %s\n' "$*"; }
 fail() { printf '[myfactory-install] ERROR: %s\n' "$*" >&2; exit 1; }
 
-find_python() {
-    for candidate in python3 python; do
-        if command -v "$candidate" >/dev/null 2>&1; then
-            if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
-                printf '%s' "$candidate"
-                return 0
-            fi
-        fi
-    done
-    return 1
+command -v curl >/dev/null 2>&1 || fail "curl is required."
+
+# --- Detect platform ----------------------------------------------------------
+
+detect_os() {
+    case "$(uname -s)" in
+        Linux)                     echo linux ;;
+        Darwin)                    echo darwin ;;
+        MINGW*|MSYS*|CYGWIN*)      echo windows ;;
+        *) fail "Unsupported operating system: $(uname -s)" ;;
+    esac
 }
 
-PYTHON_BIN="$(find_python)" || fail "Python 3.9+ is required but was not found on PATH."
-command -v git >/dev/null 2>&1 || fail "git is required but was not found on PATH."
+detect_arch() {
+    case "$(uname -m)" in
+        x86_64|amd64)   echo amd64 ;;
+        aarch64|arm64)  echo arm64 ;;
+        *) fail "Unsupported CPU architecture: $(uname -m)" ;;
+    esac
+}
 
-# --- Obtain or update the core checkout -------------------------------------
+OS="$(detect_os)"
+ARCH="$(detect_arch)"
 
-if [ -z "${MYFACTORY_REPO_URL:-}" ]; then
-    # No repo URL. If we are running from inside a local checkout, install from it.
-    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd || true)"
-    if [ -n "$script_dir" ] && [ -f "$script_dir/../myfactory/cli.py" ]; then
-        log "MYFACTORY_REPO_URL is not set; installing from local checkout."
-        CORE_DIR="$(cd "$script_dir/.." && pwd)"
-    else
-        cat >&2 <<'EOF'
-[myfactory-install] MYFACTORY_REPO_URL is not set.
+# --- Resolve version ----------------------------------------------------------
 
-Set it to the Git URL of the myfactory-core repository and re-run, e.g.:
-
-    export MYFACTORY_REPO_URL=https://github.com/YOUR_ORG/myfactory-core.git
-    curl -sSL https://domain.com/cli/install | bash
-
-Or, from a local clone of myfactory-core:
-
-    bash scripts/install-local.sh
-EOF
-        exit 1
-    fi
+if [ -z "$REQUESTED_VERSION" ]; then
+    log "Resolving latest release of $REPO"
+    # GitHub redirects releases/latest to the tagged release URL.
+    latest_url="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest")" \
+        || fail "Could not resolve the latest release. Set MYFACTORY_VERSION explicitly."
+    VERSION="${latest_url##*/}"
+    case "$VERSION" in
+        v*) : ;;
+        *) fail "Could not parse latest release tag from: $latest_url" ;;
+    esac
 else
-    mkdir -p "$MYFACTORY_HOME"
-    if [ -d "$CORE_DIR/.git" ]; then
-        log "Updating existing install in $CORE_DIR"
-        git -C "$CORE_DIR" fetch --quiet origin "$MYFACTORY_REF"
-        git -C "$CORE_DIR" checkout --quiet "$MYFACTORY_REF"
-        git -C "$CORE_DIR" pull --ff-only --quiet origin "$MYFACTORY_REF" \
-            || log "WARNING: could not fast-forward; local changes preserved."
-    elif [ -e "$CORE_DIR" ] && [ -n "$(ls -A "$CORE_DIR" 2>/dev/null)" ]; then
-        fail "$CORE_DIR exists and is not a git checkout. Move it aside and re-run."
-    else
-        log "Cloning $MYFACTORY_REPO_URL (ref: $MYFACTORY_REF) into $CORE_DIR"
-        git clone --quiet --branch "$MYFACTORY_REF" "$MYFACTORY_REPO_URL" "$CORE_DIR"
-    fi
+    VERSION="$REQUESTED_VERSION"
+    case "$VERSION" in
+        v*) : ;;
+        *) VERSION="v$VERSION" ;;
+    esac
 fi
+log "Installing MyFactory $VERSION for $OS/$ARCH"
 
-[ -f "$CORE_DIR/myfactory/cli.py" ] || fail "Install looks broken: $CORE_DIR/myfactory/cli.py not found."
+# --- Download and verify ------------------------------------------------------
 
-# --- Create the shim ---------------------------------------------------------
+if [ "$OS" = "windows" ]; then
+    ASSET="myfactory_${VERSION}_${OS}_${ARCH}.zip"
+    BIN_NAME="myfactory.exe"
+else
+    ASSET="myfactory_${VERSION}_${OS}_${ARCH}.tar.gz"
+    BIN_NAME="myfactory"
+fi
+BASE_URL="https://github.com/$REPO/releases/download/$VERSION"
 
-mkdir -p "$MYFACTORY_BIN_DIR"
-SHIM="$MYFACTORY_BIN_DIR/myfactory"
+TMP_DIR="$(mktemp -d)"
+cleanup() { rm -rf "$TMP_DIR"; }
+trap cleanup EXIT
 
-cat > "$SHIM" <<EOF
-#!/usr/bin/env bash
-# MyFactory CLI shim (generated by scripts/install.sh — safe to regenerate).
-export PYTHONPATH="$CORE_DIR\${PYTHONPATH:+:\$PYTHONPATH}"
-exec "$PYTHON_BIN" -m myfactory "\$@"
-EOF
-chmod +x "$SHIM"
+log "Downloading $ASSET"
+curl -fsSL -o "$TMP_DIR/$ASSET" "$BASE_URL/$ASSET" \
+    || fail "Download failed: $BASE_URL/$ASSET (does this release ship $OS/$ARCH?)"
+curl -fsSL -o "$TMP_DIR/checksums.txt" "$BASE_URL/checksums.txt" \
+    || fail "Download failed: $BASE_URL/checksums.txt"
 
-log "Installed core:  $CORE_DIR"
-log "Installed shim:  $SHIM"
+log "Verifying SHA-256 checksum"
+expected="$(awk -v asset="$ASSET" '$2 == asset { print $1 }' "$TMP_DIR/checksums.txt")"
+[ -n "$expected" ] || fail "checksums.txt has no entry for $ASSET"
+if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$TMP_DIR/$ASSET" | awk '{print $1}')"
+elif command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "$TMP_DIR/$ASSET" | awk '{print $1}')"
+else
+    fail "Neither sha256sum nor shasum is available to verify the download."
+fi
+[ "$expected" = "$actual" ] || fail "Checksum mismatch for $ASSET (expected $expected, got $actual). Aborting."
+log "Checksum OK"
 
-# --- PATH guidance -----------------------------------------------------------
+# --- Extract and install ------------------------------------------------------
+
+case "$ASSET" in
+    *.tar.gz) tar -xzf "$TMP_DIR/$ASSET" -C "$TMP_DIR" "$BIN_NAME" ;;
+    *.zip)
+        command -v unzip >/dev/null 2>&1 || fail "unzip is required to extract $ASSET."
+        unzip -q -o "$TMP_DIR/$ASSET" "$BIN_NAME" -d "$TMP_DIR"
+        ;;
+esac
+[ -f "$TMP_DIR/$BIN_NAME" ] || fail "Archive did not contain $BIN_NAME."
+
+mkdir -p "$INSTALL_DIR"
+install_path="$INSTALL_DIR/$BIN_NAME"
+mv -f "$TMP_DIR/$BIN_NAME" "$install_path"
+chmod +x "$install_path"
+log "Installed: $install_path"
+
+# --- Verify and report --------------------------------------------------------
+
+"$install_path" version || fail "Installed binary failed to run."
 
 case ":$PATH:" in
-    *":$MYFACTORY_BIN_DIR:"*)
+    *":$INSTALL_DIR:"*)
         log "Done. Try: myfactory --help"
         ;;
     *)
         cat <<EOF
 
-$MYFACTORY_BIN_DIR is not on your PATH. Add it, e.g.:
+$INSTALL_DIR is not on your PATH. Add it, e.g.:
 
-    echo 'export PATH="$MYFACTORY_BIN_DIR:\$PATH"' >> ~/.bashrc && source ~/.bashrc
+    echo 'export PATH="$INSTALL_DIR:\$PATH"' >> ~/.bashrc && source ~/.bashrc
 
 Then run: myfactory --help
 EOF
