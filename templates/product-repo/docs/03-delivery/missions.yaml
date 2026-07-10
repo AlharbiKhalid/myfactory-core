@@ -1,0 +1,34 @@
+# MyFactory missions.
+# A mission is a larger product goal, decomposed into sprints.
+# Missions are generated from source-of-truth docs by planning agents,
+# then synced to Plane as the execution tracker. Git remains the source of truth.
+
+schema:
+  mission_required_fields:
+    - id
+    - title
+    - goal
+    - status
+    - source_docs
+    - success_criteria
+    - sprints
+  statuses:
+    - draft
+    - ready
+    - active
+    - blocked
+    - done
+    - cancelled
+  id_convention: MISSION-###
+
+missions:
+  - id: MISSION-001
+    title: CHANGE_ME
+    goal: CHANGE_ME
+    status: draft
+    source_docs:
+      - docs/00-product/prd.md
+    success_criteria: []
+    sprints:
+      - SPRINT-001
+    risks: []

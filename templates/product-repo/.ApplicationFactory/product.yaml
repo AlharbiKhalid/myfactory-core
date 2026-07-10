@@ -29,6 +29,8 @@ source_of_truth:
 
   delivery:
     - docs/03-delivery/work-breakdown.yaml
+    - docs/03-delivery/missions.yaml
+    - docs/03-delivery/sprints.yaml
     - docs/03-delivery/plane-sync-map.yaml
 
   qa:

@@ -1,0 +1,45 @@
+# MyFactory sprints.
+# A sprint is an executable scope inside a mission.
+# Mapping: MyFactory Sprint = Plane Cycle. MyFactory Task = Plane Issue.
+
+schema:
+  sprint_required_fields:
+    - id
+    - mission_id
+    - title
+    - goal
+    - status
+    - scope
+    - entry_criteria
+    - exit_criteria
+  statuses:
+    - draft
+    - ready
+    - active
+    - blocked
+    - done
+    - cancelled
+  run_modes:
+    - manual
+    - semi_auto
+    - full_auto
+  id_convention: SPRINT-###
+
+sprints:
+  - id: SPRINT-001
+    mission_id: MISSION-001
+    title: CHANGE_ME
+    goal: CHANGE_ME
+    status: draft
+    plane_cycle:
+      id: CHANGE_ME
+      name: CHANGE_ME
+    scope:
+      included_work_items: []
+      excluded_work_items: []
+    entry_criteria: []
+    exit_criteria: []
+    validation_required:
+      functional_qa: true
+      business_qa: true
+    run_mode: manual

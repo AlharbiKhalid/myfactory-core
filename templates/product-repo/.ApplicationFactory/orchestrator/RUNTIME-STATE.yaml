@@ -1,0 +1,34 @@
+# Hermes runtime state.
+# Written by the orchestrator after every state change.
+# This file is execution state, not source of truth: missions, sprints, and
+# work items in docs/03-delivery/ remain authoritative.
+
+runtime:
+  last_updated: null          # ISO-8601 timestamp
+  controller: hermes
+  active_mission: null        # MISSION-###
+  active_sprint: null         # SPRINT-###
+  loop_iteration: 0
+  stopped_reason: null
+
+assignments: []
+# - task_id: APP-BE-001
+#   agent: claude
+#   server: dev-server-1
+#   task_package: .ApplicationFactory/task-packages/APP-BE-001.md
+#   branch: null
+#   pr_url: null
+#   state: assigned           # assigned | in_progress | pr_open | qa | business_qa | ready_to_merge | failed
+#   evidence: []
+
+qa_results: []
+# - task_id: APP-BE-001
+#   kind: functional_qa       # functional_qa | business_qa
+#   result: null              # pass | fail
+#   report: null              # path to QA report
+#   created_fix_task: null
+
+blocked: []
+# - task_id: APP-BE-002
+#   reason: CHANGE_ME
+#   needs: human_approval     # human_approval | dependency | credentials | docs

@@ -1,0 +1,23 @@
+# Development server registry template.
+# Copy to ~/.myfactory/servers.yaml (global) or keep project-local and point
+# development_servers.registry_file in .ApplicationFactory/config.yaml at it.
+# Never store credentials here; reference environment variable names only.
+
+servers:
+  - id: dev-server-1
+    name: CHANGE_ME
+    enabled: false
+    connection:
+      kind: ssh              # ssh | local | api
+      host: CHANGE_ME
+      user: CHANGE_ME
+      auth_env: CHANGE_ME    # name of env var holding key path/token, never the secret itself
+    agents:
+      - tool: claude         # claude | codex
+        role: implementation
+        max_parallel_tasks: 1
+      - tool: codex
+        role: implementation
+        max_parallel_tasks: 1
+    workspaces_root: CHANGE_ME
+    notes: ""
