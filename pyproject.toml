@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "myfactory"
+version = "0.2.0"
+description = "MyFactory: a reusable AI software factory CLI and orchestration foundation."
+requires-python = ">=3.9"
+readme = "README.md"
+license = { text = "Proprietary" }
+
+[project.scripts]
+myfactory = "myfactory.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["myfactory*"]
