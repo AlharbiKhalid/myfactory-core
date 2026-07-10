@@ -1,0 +1,90 @@
+# MyFactory project-level configuration.
+# This file is project-local. Global defaults live in ~/.myfactory/config.yaml.
+# Never store secrets here; use environment variables.
+
+project:
+  key: CHANGE_ME
+  name: CHANGE_ME
+  description: CHANGE_ME
+
+myfactory:
+  metadata_directory: .ApplicationFactory
+  lifecycle_version: 0.1.0
+
+git:
+  provider: github        # github | gitlab | none
+  default_branch: main
+
+plane:
+  enabled: false
+  base_url: CHANGE_ME
+  api_key_env: PLANE_API_KEY
+  workspace:
+    id: CHANGE_ME
+    name: CHANGE_ME
+  project:
+    id: CHANGE_ME
+    name: CHANGE_ME
+  mapping:
+    mission: MyFactory Mission
+    sprint: Plane Cycle
+    module: Plane Module
+    task: Plane Issue
+
+ai_tools:
+  claude:
+    enabled: true
+    role: discovery_and_coding_agent
+  codex:
+    enabled: true
+    role: discovery_and_coding_agent
+
+orchestration:
+  hermes:
+    enabled: false
+    mode: controller
+    require_task_package: true
+    max_parallel_tasks: 1
+
+development_servers:
+  enabled: false
+  registry_file: .ApplicationFactory/orchestrator/SERVER-REGISTRY-TEMPLATE.yaml
+  servers: []
+
+autonomy:
+  mode: semi_auto         # manual | semi_auto | full_auto
+
+locations:
+  missions: docs/03-delivery/missions.yaml
+  sprints: docs/03-delivery/sprints.yaml
+  work_breakdown: docs/03-delivery/work-breakdown.yaml
+  plane_sync_map: docs/03-delivery/plane-sync-map.yaml
+  task_packages: .ApplicationFactory/task-packages
+  orchestrator: .ApplicationFactory/orchestrator
+  runtime_state: .ApplicationFactory/orchestrator/RUNTIME-STATE.yaml
+
+source_of_truth:
+  product:
+    - docs/00-product/idea-brief.md
+    - docs/00-product/prd.md
+    - docs/00-product/user-journeys.md
+    - docs/00-product/acceptance-criteria.md
+  business:
+    - docs/01-business/business-rules.yaml
+    - docs/01-business/decision-tables.md
+    - docs/01-business/glossary.md
+  architecture:
+    - docs/02-architecture/system-overview.md
+    - docs/02-architecture/domain-model.md
+    - docs/02-architecture/data-model.md
+    - docs/02-architecture/api-contracts.md
+  delivery:
+    - docs/03-delivery/work-breakdown.yaml
+    - docs/03-delivery/missions.yaml
+    - docs/03-delivery/sprints.yaml
+    - docs/03-delivery/plane-sync-map.yaml
+  qa:
+    - docs/04-qa/test-strategy.md
+    - docs/04-qa/functional-test-matrix.csv
+    - docs/04-qa/business-rule-test-matrix.csv
+    - docs/04-qa/regression-plan.md

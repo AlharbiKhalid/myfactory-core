@@ -1,0 +1,99 @@
+# MyFactory global configuration example.
+# Copy to ~/.myfactory/config.yaml and edit. Never store secrets in this file.
+
+myfactory:
+  version: 0.2.0
+  metadata_directory: .ApplicationFactory
+
+behavior:
+  source_of_truth_is_git: true
+  plane_is_execution_tracker: true
+  never_overwrite_existing_files_by_default: true
+  require_task_packages_for_agents: true
+  require_business_rule_ids_for_business_logic: true
+  require_evidence_for_status_changes: true
+  init_is_non_interactive: true
+  discovery_is_agent_driven: true
+
+paths:
+  global_config_dir: ~/.myfactory
+  projects_registry: ~/.myfactory/projects.yaml
+  servers_registry: ~/.myfactory/servers.yaml
+
+plane:
+  enabled: false
+  base_url: CHANGE_ME
+  api_key_env: PLANE_API_KEY
+  workspace:
+    id: CHANGE_ME
+    name: CHANGE_ME
+  project:
+    id: CHANGE_ME
+    name: CHANGE_ME
+  mapping:
+    mission: MyFactory Mission
+    sprint: Plane Cycle
+    module: Plane Module
+    task: Plane Issue
+  sync:
+    create_missing_items: true
+    update_existing_items: true
+    delete_missing_items_from_plane: false
+    dry_run_default: true
+
+git:
+  provider: github
+  supported_providers:
+    - github
+    - gitlab
+  default_branch: main
+
+github:
+  enabled: true
+  api_key_env: GITHUB_TOKEN
+  use_pull_requests: true
+
+gitlab:
+  enabled: false
+  api_key_env: GITLAB_TOKEN
+  use_merge_requests: true
+
+ai_tools:
+  claude:
+    enabled: true
+    role: discovery_and_coding_agent
+  codex:
+    enabled: true
+    role: discovery_and_coding_agent
+  chatgpt:
+    enabled: true
+    role: planning_and_review_assistant
+
+orchestration:
+  hermes:
+    enabled: false
+    mode: controller
+    require_task_package: true
+    max_parallel_tasks_default: 1
+
+development_servers:
+  enabled: false
+  registry_file: ~/.myfactory/servers.yaml
+  servers: []
+
+autonomy:
+  default_mode: semi_auto
+  modes:
+    manual:
+      description: AI prepares docs/tasks, user approves execution.
+    semi_auto:
+      description: AI can run tasks and open PRs, user approves merge/release.
+    full_auto:
+      description: AI can continue sprint execution until blocked, but cannot deploy production.
+
+secrets_policy:
+  store_secrets_in_files: false
+  use_environment_variables: true
+  required_environment_variables:
+    - PLANE_API_KEY
+    - GITHUB_TOKEN
