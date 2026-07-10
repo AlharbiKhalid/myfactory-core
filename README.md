@@ -8,30 +8,48 @@ the source of truth and Plane as the execution tracker.
 
 MyFactory is not one app. It is the factory that builds apps.
 
+The CLI is a **standalone native executable** written in Go. All project
+templates are embedded in the binary — users need **no Python, no Go, no
+Node.js, and no source checkout**.
+
 ## Install
 
-Goal (future, once hosted):
+### Linux / macOS / Git Bash (Bash)
 
 ```bash
-curl -sSL https://domain.com/cli/install | bash
+curl -fsSL "https://raw.githubusercontent.com/AlharbiKhalid/myfactory-core/main/scripts/install.sh" | bash
 ```
 
-Today, from a local checkout:
+### Windows (PowerShell)
 
-```bash
-bash scripts/install-local.sh   # creates a `myfactory` shim in ~/.local/bin
-myfactory --help
+```powershell
+irm "https://raw.githubusercontent.com/AlharbiKhalid/myfactory-core/main/scripts/install.ps1" | iex
 ```
 
-Or without installing anything:
+Both installers download a prebuilt binary from GitHub Releases, **verify its
+SHA-256 checksum** against the release's `checksums.txt`, install into a
+user-writable directory (`~/.local/bin` or `%LOCALAPPDATA%\Programs\myfactory`),
+require no root/admin, and finish by running `myfactory version`. HTTP
+failures fail closed (`curl -f`); TLS verification is never disabled; only
+versioned release assets are downloaded, never branch source. Signed release
+artifacts (e.g. Sigstore/minisign) can be added later.
 
-```bash
-python -m myfactory --help
-```
+Options via environment variables: `MYFACTORY_VERSION` (default: latest),
+`MYFACTORY_REPOSITORY` (default: `AlharbiKhalid/myfactory-core`),
+`MYFACTORY_INSTALL_DIR`.
 
-The remote installer (`scripts/install.sh`) reads `MYFACTORY_REPO_URL` and
-installs into `~/.myfactory/core`. It never requires root and never stores
-secrets.
+### Manual download
+
+Grab the archive for your platform from the
+[Releases page](https://github.com/AlharbiKhalid/myfactory-core/releases),
+verify it against `checksums.txt` (`sha256sum -c`), extract, and put
+`myfactory`/`myfactory.exe` on your PATH.
+
+| OS | amd64 | arm64 |
+|---|---|---|
+| Linux | `myfactory_<v>_linux_amd64.tar.gz` | `myfactory_<v>_linux_arm64.tar.gz` |
+| macOS | `myfactory_<v>_darwin_amd64.tar.gz` | `myfactory_<v>_darwin_arm64.tar.gz` |
+| Windows | `myfactory_<v>_windows_amd64.zip` | `myfactory_<v>_windows_arm64.zip` |
 
 ## Core commands
 
@@ -43,16 +61,19 @@ myfactory plan --dry-run             Report whether source docs are ready for pl
 myfactory plan --print-prompt        Print the AI planning prompt
 myfactory plane sync --dry-run       Show what would sync to Plane (never calls APIs by default)
 myfactory orchestrator prompt        Print the Hermes controller prompt
+myfactory version                    Version, git commit, and build date
 ```
 
-All commands accept `--target PATH` to operate on another directory.
+All commands accept `--target PATH` to operate on another directory. The
+binary works from any working directory; templates come from inside the
+executable (`MYFACTORY_ASSETS_DIR` can override them for template development).
 
 ## Setup vs discovery — the key distinction
 
 - **`myfactory init` is setup only.** It copies structure: docs skeletons,
   `.ApplicationFactory/` metadata, agent instructions, GitHub/GitLab helpers,
   Claude commands, Codex `AGENTS.md`. It asks no questions, calls no AI, and
-  never overwrites existing files (unless `--force`).
+  never overwrites existing files (unless `--force`). Nothing is ever deleted.
 - **Discovery is agent-driven.** After init, you paste the discovery prompt
   (or run `/myfactory-discover` in Claude) and an AI agent interviews you and
   fills the source-of-truth docs. The same applies to business rules,
@@ -60,7 +81,7 @@ All commands accept `--target PATH` to operate on another directory.
 
 ## Lifecycle
 
-1. Install the CLI globally.
+1. Install the CLI (one binary).
 2. `myfactory init` inside any repo → factory structure appears.
 3. Claude/Codex discovery agents populate product docs and business rules
    (`/myfactory-discover`, `/myfactory-business-rules`, `/myfactory-architecture`).
@@ -132,20 +153,69 @@ Two separate gates, run by separate agents:
 A task touching business rules must pass both. A failure in either produces a
 fix task — the factory keeps moving.
 
+## Development
+
+Local development requires **Go 1.23+** (users never need it):
+
+```bash
+go build -o dist/myfactory ./cmd/myfactory   # build
+go test ./...                                # tests
+go vet ./...                                 # static checks
+bash scripts/install-local.sh                # build + install from checkout
+powershell -File scripts/install-local.ps1   # same, native Windows
+```
+
+The Go module has **zero third-party dependencies**. Templates under
+`templates/` are embedded at build time via `go:embed all:...` (the `all:`
+prefix is what preserves hidden paths like `.ApplicationFactory` and
+`.claude`; `internal/assets/assets_test.go` guards this).
+
+### Creating a release
+
+```bash
+git tag v0.3.0
+git push origin v0.3.0
+```
+
+`.github/workflows/release.yml` then runs tests and vet, cross-compiles
+`CGO_ENABLED=0` binaries for linux/darwin/windows × amd64/arm64, injects
+version metadata via ldflags, smoke-tests a real `init`, generates
+`checksums.txt` (SHA-256), and uploads everything to the GitHub Release.
+
 ## Repository layout
 
 ```text
-myfactory/            CLI package (python -m myfactory)
+cmd/myfactory/        Go CLI entrypoint
+internal/             Go implementation (cli, commands, assets, fsops, ...)
+assets.go             go:embed of templates/ (must sit at repo root)
 agents/               Reusable agent role instructions
 config/               Lifecycle, agent registry, global config example
-scripts/              create-product.py, install.sh, install-local.sh
+scripts/              Installers + create-product.py
 templates/
   product-repo/       Everything `init` copies into a project
   project-overlays/   Codex AGENTS.md + Claude .claude/commands
+myfactory/            LEGACY: Python CLI, kept only as migration reference
 ```
 
-`scripts/create-product.py` still works for creating a brand-new product repo
-from the template; `myfactory init` is the path for existing repos.
+## Python CLI migration status
+
+The original Python implementation (`myfactory/`, `pyproject.toml`) is
+**retained temporarily as the behavioral reference only** — see
+`myfactory/LEGACY.md`. The Go CLI is the primary, supported CLI, and the
+installers only ever install the Go binary. `scripts/create-product.py` still
+works for creating a brand-new product repo from the template.
+
+No product/business workflow behavior was intentionally changed in the port.
+Intentional CLI differences from the Python version:
+
+- Repeat `init` is now truly idempotent: placeholders are only filled in
+  files created by that run (Python re-ran replacement on every invocation
+  and could consume placeholders deeper in existing files, e.g.
+  `plane.workspace.name`).
+- `--git-provider gitlab` no longer leaves empty `.github/` directories.
+- Files are written byte-for-byte from templates (LF); Python rewrote
+  placeholder files with platform line endings (CRLF on Windows).
+- New `myfactory version` command with build metadata.
 
 ## Current limitations
 
@@ -155,12 +225,14 @@ from the template; `myfactory init` is the path for existing repos.
   rules); no direct API automation yet.
 - Development server delegation is a registry format + protocol, not yet
   automated transport.
-- No packaged release yet; install is via shim or `pip install -e .`.
+- Release binaries are checksummed but not yet signed.
 
 ## Next steps
 
+- First tagged release (`v0.3.0`) to light up the binary installers.
 - Live Plane API client behind `plane sync --apply`.
-- `myfactory new` wrapping `scripts/create-product.py`.
+- `myfactory new` wrapping the create-product flow.
 - GitHub/GitLab API adapters for PR/MR status reading.
 - Hermes runtime harness for development servers.
-- Hosted install endpoint for `curl | bash`.
+- Remove the legacy Python package after a deprecation window
+  (list in `myfactory/LEGACY.md`).
