@@ -1,4 +1,4 @@
-"""`myfactory discover` — print the discovery prompt for AI agents.
+"""`myfactory discover` - print the discovery prompt for AI agents.
 
 The CLI never runs discovery itself: it produces the prompt that the user
 pastes into Claude, Codex, or another agent.
@@ -20,20 +20,20 @@ MyFactory rules: Git is the source of truth. Chat is not. Your job is to
 understand the product by talking with the user, then write everything into
 the source-of-truth docs.
 
-## Step 1 — Inspect
+## Step 1 - Inspect
 
 - Read `.ApplicationFactory/product.yaml` and `.ApplicationFactory/config.yaml`.
 - Read the existing repository: README, code, docs. If this is an existing
   application, infer as much as possible before asking questions.
 - Read `docs/00-product/` to see what is already filled vs `CHANGE_ME`.
 
-## Step 2 — Talk with the user
+## Step 2 - Talk with the user
 
 Ask focused questions (a few at a time) about the problem, target users, core
 journeys, MVP scope, what is out of scope, constraints, and success criteria.
 Propose drafts for confirmation instead of interrogating.
 
-## Step 3 — Fill the product docs
+## Step 3 - Fill the product docs
 
 Write your findings into:
 
@@ -48,14 +48,14 @@ Requirements:
 - Record unresolved items in an "Open Questions" section. Never invent answers.
 - Preserve real existing content; only replace placeholders.
 
-## Step 4 — Boundaries
+## Step 4 - Boundaries
 
 - Do NOT create implementation tasks unless the user explicitly asks.
 - Do NOT write application code.
 - Do NOT edit business rules, architecture, or delivery files in this session
   (those have their own commands/agents).
 
-## Step 5 — Finish
+## Step 5 - Finish
 
 Summarize what you wrote and what remains open. If the repo uses git, offer to
 commit the doc changes with message:
@@ -69,7 +69,7 @@ architecture (in a Claude session: /myfactory-business-rules and
 AGENT_NOTES = {
     "claude": (
         "\nNote for Claude: this repo ships ready-made commands in "
-        ".claude/commands/ — /myfactory-discover is the interactive version "
+        ".claude/commands/ - /myfactory-discover is the interactive version "
         "of this prompt.\n"
     ),
     "codex": (
