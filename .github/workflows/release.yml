@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+  release:
+    name: Build and publish
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build release binaries
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+          COMMIT="$(git rev-parse --short HEAD)"
+          DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          LDFLAGS="-s -w \
+            -X github.com/AlharbiKhalid/myfactory-core/internal/version.Version=${VERSION} \
+            -X github.com/AlharbiKhalid/myfactory-core/internal/version.Commit=${COMMIT} \
+            -X github.com/AlharbiKhalid/myfactory-core/internal/version.Date=${DATE}"
+
+          mkdir -p dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            GOOS="${target%/*}"
+            GOARCH="${target#*/}"
+            BIN="myfactory"
+            [ "$GOOS" = "windows" ] && BIN="myfactory.exe"
+
+            out="dist/${GOOS}_${GOARCH}"
+            mkdir -p "$out"
+            echo "Building ${GOOS}/${GOARCH}"
+            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags "$LDFLAGS" -o "${out}/${BIN}" ./cmd/myfactory
+
+            asset="myfactory_${VERSION}_${GOOS}_${GOARCH}"
+            if [ "$GOOS" = "windows" ]; then
+              (cd "$out" && zip -q "../${asset}.zip" "$BIN")
+            else
+              tar -czf "dist/${asset}.tar.gz" -C "$out" "$BIN"
+            fi
+          done
+
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum myfactory_*.tar.gz myfactory_*.zip > checksums.txt
+          cat checksums.txt
+
+      - name: Smoke-test linux binary
+        run: |
+          set -euo pipefail
+          ./dist/linux_amd64/myfactory version
+          ./dist/linux_amd64/myfactory --help
+          tmp="$(mktemp -d)"
+          echo "# Existing App" > "$tmp/README.md"
+          ./dist/linux_amd64/myfactory init --target "$tmp" --key CI --name "CI Smoke"
+          test -f "$tmp/.ApplicationFactory/product.yaml"
+          test -f "$tmp/.claude/commands/myfactory-discover.md"
+          test "$(cat "$tmp/README.md")" = "# Existing App"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/myfactory_*.tar.gz
+            dist/myfactory_*.zip
+            dist/checksums.txt
+          generate_release_notes: true
