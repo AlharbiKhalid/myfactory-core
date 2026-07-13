@@ -3,6 +3,8 @@ package commands
 import (
 	"bytes"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -153,6 +155,119 @@ func TestPlaneSyncDryRun(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("plane sync missing %q:\n%s", want, out)
 		}
+	}
+}
+
+// writeDelivery overwrites a docs/03-delivery file in an initialized project.
+func writeDelivery(t *testing.T, dir, name, content string) {
+	t.Helper()
+	path := filepath.Join(dir, "docs", "03-delivery", name)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// PyYAML-style serialization as produced by AI planning agents: indentless
+// block sequences, anchors/aliases, wrapped plain scalars, nulls, Unicode.
+const pyyamlMissions = `missions:
+- id: MISSION-001
+  title: Repository onboarding
+  goal: Connect the real repository and resolve architecture
+    decisions before implementation.
+  status: active
+  source_docs: &id001
+  - docs/00-product/prd.md
+  - docs/01-business/business-rules.yaml
+  sprints:
+  - SPRINT-001
+  - SPRINT-002
+- id: MISSION-002
+  title: Core implementation
+  status: draft
+  source_docs: *id001
+  sprints:
+  - SPRINT-003
+`
+
+const pyyamlSprints = `sprints:
+- id: SPRINT-001
+  title: Sprint one
+  mission_id: MISSION-001
+  status: planned
+  scope:
+  - TEST-T-001
+  - TEST-T-002
+- id: SPRINT-002
+  title: Sprint two
+  mission_id: MISSION-001
+  status: planned
+  scope: []
+- id: SPRINT-003
+  title: "سبرنت ثلاثة"
+  mission_id: MISSION-002
+  status: planned
+  plane_cycle:
+    id: null
+`
+
+const pyyamlWork = `work_items:
+- id: TEST-T-001
+  title: First task
+  state: todo
+- id: TEST-T-002
+  title: Second task
+  state: todo
+  description: |
+    Literal block scalar
+    over two lines.
+- id: TEST-T-003
+  title: Third task
+  state: todo
+- id: TEST-T-004
+  title: Fourth task
+  state: todo
+- id: TEST-T-005
+  title: Fifth task
+  state: todo
+`
+
+func TestPlaneSyncReadsAIGeneratedYAML(t *testing.T) {
+	dir := initializedDir(t)
+	writeDelivery(t, dir, "missions.yaml", pyyamlMissions)
+	writeDelivery(t, dir, "sprints.yaml", pyyamlSprints)
+	writeDelivery(t, dir, "work-breakdown.yaml", pyyamlWork)
+
+	out, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+	if code != 0 {
+		t.Fatalf("plane sync exit %d:\n%s\n%s", code, out, errOut)
+	}
+	for _, want := range []string{
+		"Missions (-> Plane Modules/Labels): 2 defined",
+		"Sprints (-> Plane Cycles): 3 defined",
+		"Tasks (-> Plane Issues): 5 defined",
+		"would create/update: [MISSION-002] Core implementation (status: draft)",
+		"would create/update: [SPRINT-003] سبرنت ثلاثة (status: planned)",
+		"would create/update: [TEST-T-005] Fifth task (status: todo)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("plane sync missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestPlaneSyncFailsClosedOnMalformedYAML(t *testing.T) {
+	dir := initializedDir(t)
+	writeDelivery(t, dir, "missions.yaml", "missions:\n- id: [unclosed\n")
+
+	out, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+	if code == 0 {
+		t.Fatalf("plane sync must fail on malformed YAML:\n%s", out)
+	}
+	if !strings.Contains(errOut, "ERROR: could not parse") || !strings.Contains(errOut, "missions.yaml") {
+		t.Errorf("error must name the file and reason:\n%s", errOut)
+	}
+	if strings.Contains(out, "Missions (-> Plane Modules/Labels): 0 defined") {
+		t.Errorf("must not print a misleading zero-item plan:\n%s", out)
 	}
 }
 

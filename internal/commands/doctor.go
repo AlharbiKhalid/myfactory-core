@@ -90,7 +90,9 @@ func Doctor(args []string, stdout, stderr io.Writer) int {
 	// Plane configuration.
 	if hasConfig {
 		config, err := yamlmini.LoadFile(project.Config(targetDir))
-		if err == nil {
+		if err != nil {
+			lines = append(lines, fmt.Sprintf("[%s] %v", statusWarn, err))
+		} else {
 			if yamlmini.GetBool(config, "plane.enabled", false) {
 				keyEnv := yamlmini.GetString(config, "plane.api_key_env", "PLANE_API_KEY")
 				baseURL := yamlmini.GetString(config, "plane.base_url", "CHANGE_ME")

@@ -59,10 +59,29 @@ func planeSync(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "ERROR: %v\n", err)
 		return 1
 	}
+	// Fail closed: a delivery file that exists but cannot be parsed must
+	// surface as an error, never as a zero-item sync plan.
 	delivery := filepath.Join(targetDir, "docs", "03-delivery")
-	missionsData, _ := yamlmini.LoadFile(filepath.Join(delivery, "missions.yaml"))
-	sprintsData, _ := yamlmini.LoadFile(filepath.Join(delivery, "sprints.yaml"))
-	workData, _ := yamlmini.LoadFile(filepath.Join(delivery, "work-breakdown.yaml"))
+	loadDelivery := func(name string) (map[string]any, bool) {
+		data, err := yamlmini.LoadFile(filepath.Join(delivery, name))
+		if err != nil {
+			fmt.Fprintf(stderr, "ERROR: %v\n", err)
+			return nil, false
+		}
+		return data, true
+	}
+	missionsData, ok := loadDelivery("missions.yaml")
+	if !ok {
+		return 1
+	}
+	sprintsData, ok := loadDelivery("sprints.yaml")
+	if !ok {
+		return 1
+	}
+	workData, ok := loadDelivery("work-breakdown.yaml")
+	if !ok {
+		return 1
+	}
 	missions := yamlmini.Items(missionsData, "missions")
 	sprints := yamlmini.Items(sprintsData, "sprints")
 	work := yamlmini.Items(workData, "work_items")

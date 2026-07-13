@@ -144,9 +144,14 @@ func Plan(args []string, stdout, stderr io.Writer) int {
 		path := filepath.Join(targetDir, filepath.FromSlash(d.rel))
 		label := "missing    "
 		if _, err := os.Stat(path); err == nil {
-			if len(realItems(path, d.listKey)) > 0 {
+			items, err := realItems(path, d.listKey)
+			switch {
+			case err != nil:
+				label = "unreadable "
+				fmt.Fprintf(stderr, "WARNING: %v\n", err)
+			case len(items) > 0:
 				label = "populated  "
-			} else {
+			default:
 				label = "template   "
 			}
 		}
@@ -165,10 +170,10 @@ func Plan(args []string, stdout, stderr io.Writer) int {
 }
 
 // realItems returns non-placeholder entries of a delivery file's main list.
-func realItems(path, listKey string) []map[string]any {
+func realItems(path, listKey string) ([]map[string]any, error) {
 	data, err := yamlmini.LoadFile(path)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	var out []map[string]any
 	for _, item := range yamlmini.Items(data, listKey) {
@@ -177,7 +182,7 @@ func realItems(path, listKey string) []map[string]any {
 			out = append(out, item)
 		}
 	}
-	return out
+	return out, nil
 }
 
 func fileState(path string) string {
