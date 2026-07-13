@@ -105,6 +105,10 @@ func Plan(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "ERROR: %v\n", err)
 		return 1
 	}
+	if err := project.EnsureDir(targetDir); err != nil {
+		fmt.Fprintf(stderr, "ERROR: %v\n", err)
+		return 1
+	}
 
 	if *printPrompt {
 		fmt.Fprintln(stdout, strings.ReplaceAll(planningPrompt, "{target}", targetDir))
@@ -112,6 +116,11 @@ func Plan(args []string, stdout, stderr io.Writer) int {
 	}
 
 	fmt.Fprintf(stdout, "MyFactory planning readiness for: %s\n\n", targetDir)
+	if _, err := os.Stat(project.Config(targetDir)); err != nil {
+		fmt.Fprintln(stdout, "NOTE: this directory is not MyFactory-initialized (missing .ApplicationFactory/config.yaml).")
+		fmt.Fprintln(stdout, "Run `myfactory init` first; the report below reflects an empty project.")
+		fmt.Fprintln(stdout)
+	}
 	allReady := true
 	stateLabels := map[string]string{
 		"filled":      "ready      ",

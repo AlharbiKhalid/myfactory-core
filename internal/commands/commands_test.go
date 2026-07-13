@@ -271,6 +271,163 @@ func TestPlaneSyncFailsClosedOnMalformedYAML(t *testing.T) {
 	}
 }
 
+func TestPlaneSyncNonexistentTarget(t *testing.T) {
+	bad := filepath.Join(t.TempDir(), "definitely-does-not-exist")
+	out, errOut, code := capture(Plane, "sync", "--target", bad, "--dry-run")
+	if code == 0 {
+		t.Fatalf("plane sync must fail for a nonexistent target:\n%s", out)
+	}
+	if !strings.Contains(errOut, "ERROR: target directory does not exist: "+bad) {
+		t.Errorf("expected target-directory error naming %s:\n%s", bad, errOut)
+	}
+	if strings.Contains(out, "defined") {
+		t.Errorf("must not print a sync plan for a nonexistent target:\n%s", out)
+	}
+}
+
+func TestPlaneSyncUninitializedTarget(t *testing.T) {
+	dir := t.TempDir()
+	out, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+	if code == 0 {
+		t.Fatalf("plane sync must fail for an uninitialized target:\n%s", out)
+	}
+	if !strings.Contains(errOut, "not a MyFactory project") || !strings.Contains(errOut, "myfactory init") {
+		t.Errorf("error must point at `myfactory init`:\n%s", errOut)
+	}
+	if strings.Contains(out, "defined") {
+		t.Errorf("must not print a sync plan for an uninitialized target:\n%s", out)
+	}
+}
+
+func TestPlaneSyncMissingDeliveryFiles(t *testing.T) {
+	for _, name := range []string{"missions.yaml", "sprints.yaml", "work-breakdown.yaml"} {
+		t.Run(name, func(t *testing.T) {
+			dir := initializedDir(t)
+			path := filepath.Join(dir, "docs", "03-delivery", name)
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+			out, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+			if code == 0 {
+				t.Fatalf("plane sync must fail when %s is missing:\n%s", name, out)
+			}
+			if !strings.Contains(errOut, "required delivery file is missing: "+path) {
+				t.Errorf("error must name the missing path %s:\n%s", path, errOut)
+			}
+			if strings.Contains(out, "defined") {
+				t.Errorf("must not print a sync plan when %s is missing:\n%s", name, out)
+			}
+		})
+	}
+}
+
+func TestPlaneSyncRejectsEmptyOrWrongStructure(t *testing.T) {
+	t.Run("empty file", func(t *testing.T) {
+		dir := initializedDir(t)
+		writeDelivery(t, dir, "missions.yaml", "")
+		out, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+		if code == 0 {
+			t.Fatalf("plane sync must fail for an empty missions.yaml:\n%s", out)
+		}
+		if !strings.Contains(errOut, "missions.yaml") || !strings.Contains(errOut, `missing top-level "missions" key`) {
+			t.Errorf("error must explain the missing top-level key:\n%s", errOut)
+		}
+	})
+	t.Run("missing top-level key", func(t *testing.T) {
+		dir := initializedDir(t)
+		writeDelivery(t, dir, "sprints.yaml", "schema: {}\n")
+		_, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+		if code == 0 {
+			t.Fatal("plane sync must fail when the sprints key is absent")
+		}
+		if !strings.Contains(errOut, `missing top-level "sprints" key`) {
+			t.Errorf("error must name the sprints key:\n%s", errOut)
+		}
+	})
+	t.Run("non-list value", func(t *testing.T) {
+		dir := initializedDir(t)
+		writeDelivery(t, dir, "work-breakdown.yaml", "work_items: 5\n")
+		_, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+		if code == 0 {
+			t.Fatal("plane sync must fail when work_items is not a list")
+		}
+		if !strings.Contains(errOut, `top-level "work_items" must be a list`) {
+			t.Errorf("error must say work_items must be a list:\n%s", errOut)
+		}
+	})
+}
+
+// Files that exist, parse, and explicitly define their top-level lists may
+// report zero items normally.
+func TestPlaneSyncExplicitlyEmptyPlan(t *testing.T) {
+	dir := initializedDir(t)
+	writeDelivery(t, dir, "missions.yaml", "missions: []\n")
+	writeDelivery(t, dir, "sprints.yaml", "sprints: []\n")
+	writeDelivery(t, dir, "work-breakdown.yaml", "work_items: []\n")
+	out, errOut, code := capture(Plane, "sync", "--target", dir, "--dry-run")
+	if code != 0 {
+		t.Fatalf("plane sync must accept an explicitly empty plan, exit %d:\n%s", code, errOut)
+	}
+	for _, want := range []string{
+		"Missions (-> Plane Modules/Labels): 0 defined",
+		"Sprints (-> Plane Cycles): 0 defined",
+		"Tasks (-> Plane Issues): 0 defined",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("empty plan missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestDoctorNonexistentTarget(t *testing.T) {
+	bad := filepath.Join(t.TempDir(), "definitely-does-not-exist")
+	out, errOut, code := capture(Doctor, "--target", bad)
+	if code == 0 {
+		t.Fatalf("doctor must fail for a nonexistent target:\n%s", out)
+	}
+	if !strings.Contains(errOut, "ERROR: target directory does not exist: "+bad) {
+		t.Errorf("expected target-directory error:\n%s", errOut)
+	}
+	if strings.Contains(out, "Readiness:") {
+		t.Errorf("must not print a readiness score for a nonexistent target:\n%s", out)
+	}
+}
+
+func TestPlanNonexistentTarget(t *testing.T) {
+	bad := filepath.Join(t.TempDir(), "definitely-does-not-exist")
+	out, errOut, code := capture(Plan, "--target", bad, "--dry-run")
+	if code == 0 {
+		t.Fatalf("plan must fail for a nonexistent target:\n%s", out)
+	}
+	if !strings.Contains(errOut, "ERROR: target directory does not exist: "+bad) {
+		t.Errorf("expected target-directory error:\n%s", errOut)
+	}
+}
+
+func TestPlanUninitializedTargetNote(t *testing.T) {
+	out, _, code := capture(Plan, "--target", t.TempDir(), "--dry-run")
+	if code != 0 {
+		t.Fatalf("plan remains a report for existing uninitialized dirs, exit %d", code)
+	}
+	if !strings.Contains(out, "not MyFactory-initialized") || !strings.Contains(out, "myfactory init") {
+		t.Errorf("plan must call out an uninitialized project:\n%s", out)
+	}
+}
+
+func TestOrchestratorPromptNonexistentExplicitTarget(t *testing.T) {
+	bad := filepath.Join(t.TempDir(), "definitely-does-not-exist")
+	out, errOut, code := capture(Orchestrator, "prompt", "--target", bad)
+	if code == 0 {
+		t.Fatalf("orchestrator prompt must not fall back for an explicit nonexistent target:\n%s", out)
+	}
+	if !strings.Contains(errOut, "ERROR: target directory does not exist: "+bad) {
+		t.Errorf("expected target-directory error:\n%s", errOut)
+	}
+	if strings.Contains(out, "embedded template") {
+		t.Errorf("must not silently use the embedded fallback:\n%s", out)
+	}
+}
+
 func TestPlaneSyncApplyRefusesWithoutConfig(t *testing.T) {
 	dir := initializedDir(t)
 	out, _, code := capture(Plane, "sync", "--target", dir, "--apply")

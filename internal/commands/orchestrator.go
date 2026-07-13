@@ -46,6 +46,15 @@ func orchestratorPrompt(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "ERROR: %v\n", err)
 		return 1
 	}
+	// The embedded fallback exists so the command works before init, but an
+	// explicitly requested target that does not exist is a user error and
+	// must not silently fall back.
+	if *target != "" {
+		if err := project.EnsureDir(targetDir); err != nil {
+			fmt.Fprintf(stderr, "ERROR: %v\n", err)
+			return 1
+		}
+	}
 
 	projectPrompt := filepath.Join(project.OrchestratorDir(targetDir), promptFilename)
 	if fsops.FileExists(projectPrompt) {

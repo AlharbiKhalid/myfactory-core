@@ -35,6 +35,12 @@ func Doctor(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "ERROR: %v\n", err)
 		return 1
 	}
+	// Doctor reports on existing directories; a nonexistent target is a user
+	// error (wrong machine/path), not a project with everything missing.
+	if err := project.EnsureDir(targetDir); err != nil {
+		fmt.Fprintf(stderr, "ERROR: %v\n", err)
+		return 1
+	}
 
 	fmt.Fprintf(stdout, "MyFactory doctor report for: %s\n\n", targetDir)
 

@@ -2,6 +2,7 @@
 package project
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -28,6 +29,30 @@ func expandHome(path string) string {
 		}
 	}
 	return path
+}
+
+// EnsureDir returns an error when target is not an existing directory.
+// --target always refers to a local path; MyFactory never accesses remote
+// filesystems, so a nonexistent target is a user error, not an empty project.
+func EnsureDir(target string) error {
+	info, err := os.Stat(target)
+	if err != nil || !info.IsDir() {
+		return fmt.Errorf("target directory does not exist: %s", target)
+	}
+	return nil
+}
+
+// EnsureInitialized returns an error when target is not an existing,
+// MyFactory-initialized directory (marked by .ApplicationFactory/config.yaml).
+func EnsureInitialized(target string) error {
+	if err := EnsureDir(target); err != nil {
+		return err
+	}
+	if info, err := os.Stat(Config(target)); err != nil || !info.Mode().IsRegular() {
+		return fmt.Errorf("target is not a MyFactory project (missing %s): %s\nRun `myfactory init --target %s` to initialize it",
+			filepath.Join(MetadataDirName, "config.yaml"), target, target)
+	}
+	return nil
 }
 
 // MetadataDir returns <target>/.ApplicationFactory.

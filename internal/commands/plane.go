@@ -54,37 +54,58 @@ func planeSync(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
+	if err := project.EnsureInitialized(targetDir); err != nil {
+		fmt.Fprintf(stderr, "ERROR: %v\n", err)
+		return 1
+	}
+
 	config, err := yamlmini.LoadFile(project.Config(targetDir))
 	if err != nil {
 		fmt.Fprintf(stderr, "ERROR: %v\n", err)
 		return 1
 	}
-	// Fail closed: a delivery file that exists but cannot be parsed must
-	// surface as an error, never as a zero-item sync plan.
+	// Fail closed: a delivery file that is missing, unparseable, empty, or
+	// missing its expected top-level list must surface as an error, never as
+	// a zero-item sync plan. Zero items are only valid when the file exists
+	// and explicitly defines the list (e.g. `work_items: []`).
 	delivery := filepath.Join(targetDir, "docs", "03-delivery")
-	loadDelivery := func(name string) (map[string]any, bool) {
-		data, err := yamlmini.LoadFile(filepath.Join(delivery, name))
+	loadDelivery := func(name, key string) ([]map[string]any, bool) {
+		path := filepath.Join(delivery, name)
+		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+			fmt.Fprintf(stderr, "ERROR: required delivery file is missing: %s\n", path)
+			fmt.Fprintln(stderr, "Run `myfactory init` to restore templates, or `myfactory plan --print-prompt` to regenerate the plan.")
+			return nil, false
+		}
+		data, err := yamlmini.LoadFile(path)
 		if err != nil {
 			fmt.Fprintf(stderr, "ERROR: %v\n", err)
 			return nil, false
 		}
-		return data, true
+		value, present := data[key]
+		if !present {
+			fmt.Fprintf(stderr, "ERROR: %s is empty or has the wrong structure: missing top-level %q key\n", path, key)
+			return nil, false
+		}
+		switch value.(type) {
+		case nil, []any:
+		default:
+			fmt.Fprintf(stderr, "ERROR: %s has the wrong structure: top-level %q must be a list\n", path, key)
+			return nil, false
+		}
+		return yamlmini.Items(data, key), true
 	}
-	missionsData, ok := loadDelivery("missions.yaml")
+	missions, ok := loadDelivery("missions.yaml", "missions")
 	if !ok {
 		return 1
 	}
-	sprintsData, ok := loadDelivery("sprints.yaml")
+	sprints, ok := loadDelivery("sprints.yaml", "sprints")
 	if !ok {
 		return 1
 	}
-	workData, ok := loadDelivery("work-breakdown.yaml")
+	work, ok := loadDelivery("work-breakdown.yaml", "work_items")
 	if !ok {
 		return 1
 	}
-	missions := yamlmini.Items(missionsData, "missions")
-	sprints := yamlmini.Items(sprintsData, "sprints")
-	work := yamlmini.Items(workData, "work_items")
 
 	enabled := yamlmini.GetBool(config, "plane.enabled", false)
 	keyEnv := yamlmini.GetString(config, "plane.api_key_env", "PLANE_API_KEY")
