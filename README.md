@@ -165,7 +165,13 @@ bash scripts/install-local.sh                # build + install from checkout
 powershell -File scripts/install-local.ps1   # same, native Windows
 ```
 
-The Go module has **zero third-party dependencies**. Templates under
+The Go module's only third-party dependency is `gopkg.in/yaml.v3`, which is
+compiled into the binary — end users still install nothing beyond the
+executable. MyFactory accepts any standards-compliant YAML (as written by
+Claude, Codex, PyYAML, or ordinary editors), including anchors/aliases,
+indentless block sequences, and block scalars. A delivery file that fails to
+parse makes `plane sync` exit non-zero with the file path and reason instead
+of reporting a zero-item plan. Templates under
 `templates/` are embedded at build time via `go:embed all:...` (the `all:`
 prefix is what preserves hidden paths like `.ApplicationFactory` and
 `.claude`; `internal/assets/assets_test.go` guards this).
